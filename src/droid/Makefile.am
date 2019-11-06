@@ -39,7 +39,7 @@ module_droid_source_la_LDFLAGS = -module -avoid-version -Wl,-z,noexecstack -lhyb
 module_droid_source_la_LIBADD = -lm libdroid-source.la $(AM_LIBADD)
 module_droid_source_la_CFLAGS = $(AM_CFLAGS) -DPA_MODULE_NAME=module_droid_source
 
-module_droid_card_la_SOURCES = module-droid-card.c droid-extcon.c
+module_droid_card_la_SOURCES = module-droid-card.c droid-extcon.c droid-extevdev.c
 module_droid_card_la_LDFLAGS = -module -avoid-version -Wl,-z,noexecstack -lhybris-common -ludev
-module_droid_card_la_LIBADD = -lm libdroid-sink.la libdroid-source.la $(top_builddir)/src/common/libdroid-util.la $(AM_LIBADD)
-module_droid_card_la_CFLAGS = $(AM_CFLAGS) -DPA_MODULE_NAME=module_droid_card
+module_droid_card_la_LIBADD = -lm libdroid-sink.la libdroid-source.la $(top_builddir)/src/common/libdroid-util.la $(AM_LIBADD) $(EVDEV_LIBS)
+module_droid_card_la_CFLAGS = $(AM_CFLAGS) $(EVDEV_CFLAGS) -DPA_MODULE_NAME=module_droid_card

@@ -184,6 +184,10 @@ PKG_CHECK_MODULES([HYBRIS], [libhardware >= 0.1.0])
 AC_SUBST(HYBRIS_CFLAGS)
 AC_SUBST(HYBRIS_LIBS)
 
+PKG_CHECK_MODULES([EVDEV], [libevdev >= 1.0])
+AC_SUBST(EVDEV_CFLAGS)
+AC_SUBST(EVDEV_LIBS)
+
 #### expat (for xml config format parsing) ####
 
 PKG_CHECK_MODULES([EXPAT], [expat >= 2.1])
