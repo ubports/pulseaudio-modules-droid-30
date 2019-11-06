@@ -12,6 +12,7 @@ Build-Depends: android-headers (>= 23),
     libhardware-dev,
     libdbus-1-dev,
     libltdl-dev,
+    libevdev-dev,
     libhybris-common-dev,
     libudev-dev
 Maintainer: Marius Gripsgard <marius@ubports.com>
