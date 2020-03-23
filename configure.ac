@@ -171,7 +171,7 @@ AS_IF([test "$pulseaudio_cv__Bool" = "yes"], [
 #LT_INIT([dlopen win32-dll disable-static])
 AC_PROG_LIBTOOL
 
-PKG_CHECK_MODULES([PULSEAUDIO], [libpulse >= 14.2 pulsecore >= 14.2])
+PKG_CHECK_MODULES([PULSEAUDIO], [libpulse >= 8.0 pulsecore >= 8.0])
 AC_SUBST(PULSEAUDIO_CFLAGS)
 AC_SUBST(PULSEAUDIO_LIBS)
 
