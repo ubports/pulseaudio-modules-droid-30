@@ -32,8 +32,8 @@
 #include <pulsecore/atomic.h>
 #include <pulsecore/modargs.h>
 
-#include <droid/version.h>
-#include <droid/droid-config.h>
+#include "version.h"
+#include "droid-config.h"
 
 #define PROP_DROID_DEVICES    "droid.devices"
 #define PROP_DROID_FLAGS      "droid.flags"

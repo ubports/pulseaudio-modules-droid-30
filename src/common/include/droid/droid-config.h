@@ -30,8 +30,8 @@
 #include <android-config.h>
 #include <hardware/audio.h>
 
-#include <droid/sllist.h>
-#include <droid/version.h>
+#include "sllist.h"
+#include "version.h"
 
 #define AUDIO_MAX_SAMPLING_RATES    (32)
 #define AUDIO_MAX_CHANNEL_MASKS     (32)
