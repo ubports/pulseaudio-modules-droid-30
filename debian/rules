@@ -3,7 +3,7 @@
 
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
-ANDROID_API_VERSIONS := 24 28
+ANDROID_API_VERSIONS := 30
 
 %:
 	dh $@ --with=autoreconf --parallel --fail-missing
