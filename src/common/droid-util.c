@@ -91,6 +91,8 @@ struct droid_option valid_options[] = {
     { "speaker_before_voice",   DM_OPTION_SPEAKER_BEFORE_VOICE  },
     { "output_voip_rx",         DM_OPTION_OUTPUT_VOIP_RX        },
     { "record_voice_16k",       DM_OPTION_RECORD_VOICE_16K      },
+    { "halium_10_audio_hal",    DM_OPTION_HALIUM_10_AUDIO_HAL   },
+
 };
 
 struct user_options {
@@ -2180,6 +2182,105 @@ static int droid_output_stream_audio_patch_update(pa_droid_stream *primary_strea
     return ret;
 }
 
+int input_stream_set_parameter(pa_droid_stream *s, const dm_config_port *device_port){
+    pa_droid_input_stream *input;
+    audio_devices_t device;
+    audio_source_t source;
+    char *parameters = NULL;
+    int ret = 0;
+    pa_droid_hw_module *hw_module;
+
+
+    hw_module = s->module;
+    input = s->input;
+
+     /* Input stream closed, no need for set parameters */
+    if (!input->stream)
+        goto done;
+
+    device = device_port->type;
+    source = input->audio_source;
+
+    parameters = pa_sprintf_malloc("%s=%d;%s=%u", AUDIO_PARAMETER_STREAM_ROUTING, (int32_t) device,
+                                                  AUDIO_PARAMETER_STREAM_INPUT_SOURCE, source);
+
+
+    pa_log_debug("input stream %p set_parameters(%s) %#010x ; %#010x",
+                 (void *) s, parameters, device, source);
+
+
+    pa_mutex_lock(hw_module->input_mutex);
+    ret = input->stream->common.set_parameters(&input->stream->common, parameters);
+    pa_mutex_unlock(hw_module->input_mutex);
+
+    if (ret < 0) {
+        if (ret == -ENOSYS)
+            pa_log_warn("input set_parameters(%s) not allowed while stream is active", parameters);
+        else
+            pa_log_warn("input set_parameters(%s) failed", parameters);
+    }
+
+    pa_xfree(parameters);
+
+done:
+    return ret;
+
+}
+
+int output_stream_set_parameter(pa_droid_stream *s, const dm_config_port *device_port){
+    pa_droid_output_stream *output;
+    pa_droid_stream *slave;
+    uint32_t idx;
+    char *parameters = NULL;
+    int ret = 0;
+    audio_devices_t device;
+    pa_droid_hw_module *hw_module;
+    int set_bt_sco = -1;
+
+    pa_assert(s);
+    pa_assert(s->output);
+    pa_assert(s->module);
+    pa_assert(s->module->output_mutex);
+
+    output = s->output;
+    hw_module = s->module;
+    device = device_port->type;
+
+    pa_mutex_lock(s->module->output_mutex);
+
+
+    parameters = pa_sprintf_malloc("%s=%u;", AUDIO_PARAMETER_STREAM_ROUTING, device);
+
+    /* Set BT_SCO parameter for Bluetooth voice/voip call routes. */
+
+    set_bt_sco = (device & (AUDIO_DEVICE_OUT_BLUETOOTH_SCO |
+                            AUDIO_DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
+                            AUDIO_DEVICE_OUT_BLUETOOTH_SCO_CARKIT)) ? 1 : 0;
+
+    if (set_bt_sco == 1 && device_port->flags & AUDIO_OUTPUT_FLAG_PRIMARY)
+        droid_set_parameters(s->module, AUDIO_PARAMETER_BT_SCO_ON);
+
+    pa_log_debug("output stream %p set_parameters(%s) %#010x", (void *) s, parameters, device);
+    ret = output->stream->common.set_parameters(&output->stream->common, parameters);
+
+    if (set_bt_sco == 0 && device_port->flags & AUDIO_OUTPUT_FLAG_PRIMARY)
+        droid_set_parameters(s->module, AUDIO_PARAMETER_BT_SCO_OFF);
+
+    if (ret < 0) {
+        if (ret == -ENOSYS)
+            pa_log_warn("output set_parameters(%s) not allowed while stream is active", parameters);
+        else
+            pa_log_warn("output set_parameters(%s) failed", parameters);
+    }
+
+    pa_xfree(parameters);
+
+    pa_mutex_unlock(s->module->output_mutex);
+
+    return ret;
+}
+
+
 static int input_stream_set_route(pa_droid_stream *stream, const dm_config_port *device_port) {
     pa_droid_input_stream *input;
     char *parameters = NULL;
@@ -2193,8 +2294,12 @@ static int input_stream_set_route(pa_droid_stream *stream, const dm_config_port 
     if (!input->stream)
         goto done;
 
-    audio_patch_release(stream);
-    ret = audio_patch_update_input(stream, device_port);
+    if (!pa_droid_option(stream->module, DM_OPTION_HALIUM_10_AUDIO_HAL)) {
+        audio_patch_release(stream);
+        ret = audio_patch_update_input(stream, device_port);
+    } else {
+        ret = input_stream_set_parameter(stream, device_port);
+    }
 
     if (ret < 0)
         pa_log_warn("input_stream_set_route(%s) failed", device_port->name);
@@ -2210,12 +2315,14 @@ int pa_droid_stream_set_route(pa_droid_stream *s, dm_config_port *device_port) {
 
     if (s->output) {
         int ret;
+        if (!pa_droid_option(s->module, DM_OPTION_HALIUM_10_AUDIO_HAL)) {
+            if (pa_droid_stream_is_primary(s))
+                stream_update_bt_sco(s->module, device_port);
 
-        if (pa_droid_stream_is_primary(s))
-            stream_update_bt_sco(s->module, device_port);
-
-        ret = droid_output_stream_audio_patch_update(s, device_port);
-
+            ret = droid_output_stream_audio_patch_update(s, device_port);
+        } else {
+            ret = output_stream_set_parameter(s, device_port);
+        }
         return ret;
     } else {
         pa_droid_hw_set_input_device(s, device_port);
