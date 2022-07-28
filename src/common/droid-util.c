@@ -79,19 +79,19 @@ struct droid_option {
 };
 
 struct droid_option valid_options[] = {
-    { "input_atoi",             DM_OPTION_INPUT_ATOI            },
-    { "close_input",            DM_OPTION_CLOSE_INPUT           },
-    { "unload_no_close",        DM_OPTION_UNLOAD_NO_CLOSE       },
-    { "hw_volume",              DM_OPTION_HW_VOLUME             },
-    { "realcall",               DM_OPTION_REALCALL              },
-    { "unload_call_exit",       DM_OPTION_UNLOAD_CALL_EXIT      },
-    { "output_fast",            DM_OPTION_OUTPUT_FAST           },
-    { "output_deep_buffer",     DM_OPTION_OUTPUT_DEEP_BUFFER    },
-    { "audio_cal_wait",         DM_OPTION_AUDIO_CAL_WAIT        },
-    { "speaker_before_voice",   DM_OPTION_SPEAKER_BEFORE_VOICE  },
-    { "output_voip_rx",         DM_OPTION_OUTPUT_VOIP_RX        },
-    { "record_voice_16k",       DM_OPTION_RECORD_VOICE_16K      },
-    { "halium_10_audio_hal",    DM_OPTION_HALIUM_10_AUDIO_HAL   },
+    { "input_atoi",                        DM_OPTION_INPUT_ATOI                        },
+    { "close_input",                       DM_OPTION_CLOSE_INPUT                       },
+    { "unload_no_close",                   DM_OPTION_UNLOAD_NO_CLOSE                   },
+    { "hw_volume",                         DM_OPTION_HW_VOLUME                         },
+    { "realcall",                          DM_OPTION_REALCALL                          },
+    { "unload_call_exit",                  DM_OPTION_UNLOAD_CALL_EXIT                  },
+    { "output_fast",                       DM_OPTION_OUTPUT_FAST                       },
+    { "output_deep_buffer",                DM_OPTION_OUTPUT_DEEP_BUFFER                },
+    { "audio_cal_wait",                    DM_OPTION_AUDIO_CAL_WAIT                    },
+    { "speaker_before_voice",              DM_OPTION_SPEAKER_BEFORE_VOICE              },
+    { "output_voip_rx",                    DM_OPTION_OUTPUT_VOIP_RX                    },
+    { "record_voice_16k",                  DM_OPTION_RECORD_VOICE_16K                  },
+    { "use_legacy_stream_set_parameters",  DM_OPTION_USE_LEGACY_STREAM_SET_PARAMETERS  },
 
 };
 
@@ -2294,7 +2294,7 @@ static int input_stream_set_route(pa_droid_stream *stream, const dm_config_port 
     if (!input->stream)
         goto done;
 
-    if (!pa_droid_option(stream->module, DM_OPTION_HALIUM_10_AUDIO_HAL)) {
+    if (!pa_droid_option(stream->module, DM_OPTION_USE_LEGACY_STREAM_SET_PARAMETERS)) {
         audio_patch_release(stream);
         ret = audio_patch_update_input(stream, device_port);
     } else {
@@ -2315,7 +2315,7 @@ int pa_droid_stream_set_route(pa_droid_stream *s, dm_config_port *device_port) {
 
     if (s->output) {
         int ret;
-        if (!pa_droid_option(s->module, DM_OPTION_HALIUM_10_AUDIO_HAL)) {
+        if (!pa_droid_option(s->module, DM_OPTION_USE_LEGACY_STREAM_SET_PARAMETERS)) {
             if (pa_droid_stream_is_primary(s))
                 stream_update_bt_sco(s->module, device_port);
 
