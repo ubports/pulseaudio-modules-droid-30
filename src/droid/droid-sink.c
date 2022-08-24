@@ -105,7 +105,6 @@ struct userdata {
 
     char *sco_fake_sink_name;
     struct pa_sink *sco_fake_sink;
-    pa_hook_slot *sink_port_changed_hook_slot_for_scofakesink;
 };
 
 #define DEFAULT_MODULE_ID "primary"
@@ -529,6 +528,7 @@ static int sink_process_msg(pa_msgobject *o, int code, void *data, int64_t offse
 static int sink_set_port_cb(pa_sink *s, pa_device_port *p) {
     struct userdata *u = s->userdata;
     pa_droid_port_data *data;
+    const char *sco_transport_enabled;
 
     pa_assert(u);
     pa_assert(p);
@@ -546,23 +546,6 @@ static int sink_set_port_cb(pa_sink *s, pa_device_port *p) {
     pa_log_debug("Sink set port %#010x (%s)", data->device_port->type, data->device_port->name);
 
     u->active_device_port = data->device_port;
-    do_routing(u);
-
-    return 0;
-}
-
-/* Done as a hook instead of in the above function since it runs on the IO thread,
- * and proplist update needs to happen on the main thread. */
-static pa_hook_result_t sink_port_changed_hook_for_scofakesink_cb(pa_core *c, pa_sink *sink, struct userdata *u) {
-    pa_device_port *port;
-    pa_droid_port_data *data;
-    const char *sco_transport_enabled;
-
-    if (sink != u->sink)
-        return PA_HOOK_OK;
-
-    port = sink->active_port;
-    data = PA_DEVICE_PORT_DATA(port);
 
     /* See if the sco fake sink element is available (only when needed) */
     if ((u->sco_fake_sink == NULL) && (data->device_port->type & AUDIO_DEVICE_OUT_ALL_SCO))
@@ -578,7 +561,9 @@ static pa_hook_result_t sink_port_changed_hook_for_scofakesink_cb(pa_core *c, pa
             set_fake_sco_sink_transport_property(u, "true");
     }
 
-    return PA_HOOK_OK;
+    do_routing(u);
+
+    return 0;
 }
 
 static void apply_volume(pa_sink *s) {
@@ -1256,10 +1241,6 @@ pa_sink *pa_droid_sink_new(pa_module *m,
         u->sink->set_port = sink_set_port_cb;
     }
 
-    /* Hooks for setting fake-SCO properties. */
-    u->sink_port_changed_hook_slot_for_scofakesink = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PORT_CHANGED], PA_HOOK_LATE,
-            (pa_hook_cb_t) sink_port_changed_hook_for_scofakesink_cb, u);
-
     update_volumes(u);
 
     pa_droid_stream_suspend(u->stream, false);
@@ -1320,9 +1301,6 @@ static void userdata_free(struct userdata *u) {
 
     if (u->sink_proplist_changed_hook_slot)
         pa_hook_slot_free(u->sink_proplist_changed_hook_slot);
-
-    if (u->sink_port_changed_hook_slot_for_scofakesink)
-        pa_hook_slot_free(u->sink_port_changed_hook_slot_for_scofakesink);
 
     if (u->sink)
         pa_sink_unref(u->sink);
